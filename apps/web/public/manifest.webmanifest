@@ -1,0 +1,18 @@
+{
+  "name": "Hantavirus Information Resource",
+  "short_name": "HantaInfo",
+  "description": "Mobile-ready hantavirus education, updates, notifications, and offline access.",
+  "display": "standalone",
+  "start_url": "/",
+  "scope": "/",
+  "background_color": "#f5f7f4",
+  "theme_color": "#0f6f5c",
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

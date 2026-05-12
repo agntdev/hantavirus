@@ -46,6 +46,12 @@ const ContentLibrary = lazy(() =>
   }))
 );
 
+const MobileSupport = lazy(() =>
+  import('./components/MobileSupport.js').then(({ MobileSupport }) => ({
+    default: MobileSupport
+  }))
+);
+
 export function App() {
   const [locale, setLocale] = useState(getInitialLocale);
   const copy = translations[locale];
@@ -162,6 +168,15 @@ export function App() {
             title="Educational content waits for source-backed review"
           >
             <ContentLibrary />
+          </ContentSection>
+
+          <ContentSection
+            eyebrow="Mobile"
+            id="mobile"
+            intro="Install the app, keep core workflows available offline, and prepare alert delivery."
+            title="Mobile support for the full resource"
+          >
+            <MobileSupport />
           </ContentSection>
         </Suspense>
       </main>
