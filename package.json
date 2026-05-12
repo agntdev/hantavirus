@@ -1,0 +1,23 @@
+{
+  "name": "hantavirus",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Comprehensive online resource for hantavirus information and prevention.",
+  "type": "module",
+  "packageManager": "npm@10.9.2",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace @hantavirus/api",
+    "dev:web": "npm run dev --workspace @hantavirus/web",
+    "build": "npm run build --workspaces",
+    "typecheck": "npm run typecheck --workspaces",
+    "lint": "npm run lint --workspaces",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "typescript": "^5.8.3"
+  }
+}
