@@ -1,0 +1,7 @@
+node_modules
+npm-debug.log
+.git
+.env
+apps/api/dist
+apps/web/dist
+apps/web/tsconfig.tsbuildinfo

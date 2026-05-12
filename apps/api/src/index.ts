@@ -4,12 +4,28 @@ import helmet from 'helmet';
 import { config } from './config.js';
 import { checkDatabase, pool } from './db.js';
 import { createFeedbackRouter } from './feedback.js';
+import {
+  createAccessLogMiddleware,
+  createErrorHandler,
+  createNotFoundHandler,
+  createRequestIdMiddleware
+} from './monitoring.js';
 
 const app = express();
 
+app.set('trust proxy', 1);
+app.disable('x-powered-by');
+app.use(createRequestIdMiddleware());
+app.use(createAccessLogMiddleware());
 app.use(helmet());
-app.use(cors({ origin: config.CORS_ORIGIN }));
-app.use(express.json());
+app.use(
+  cors({
+    maxAge: 600,
+    methods: ['GET', 'POST', 'OPTIONS'],
+    origin: config.CORS_ORIGIN
+  })
+);
+app.use(express.json({ limit: '64kb' }));
 
 app.use('/api/feedback', createFeedbackRouter(pool));
 
@@ -29,6 +45,9 @@ app.get('/ready', async (_request, response) => {
     });
   }
 });
+
+app.use(createNotFoundHandler());
+app.use(createErrorHandler());
 
 const server = app.listen(config.API_PORT, () => {
   console.log(`Hantavirus API listening on port ${config.API_PORT}`);
