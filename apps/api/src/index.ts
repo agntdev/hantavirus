@@ -5,6 +5,7 @@ import { config } from './config.js';
 import { checkDatabase, pool } from './db.js';
 import { createFeedbackRouter } from './feedback.js';
 import {
+  buildLaunchStatus,
   createAccessLogMiddleware,
   createErrorHandler,
   createNotFoundHandler,
@@ -44,6 +45,37 @@ app.get('/ready', async (_request, response) => {
       message: error instanceof Error ? error.message : 'Database check failed'
     });
   }
+});
+
+app.get('/api/launch/status', async (_request, response) => {
+  const checkedAt = new Date().toISOString();
+  let databaseReady = false;
+  let openFeedbackItems = 0;
+
+  try {
+    databaseReady = await checkDatabase();
+    if (databaseReady) {
+      const { rows } = await pool.query<{ total: string }>(
+        `SELECT count(*)::text AS total
+           FROM user_feedback
+          WHERE status <> 'resolved'`
+      );
+      openFeedbackItems = Number(rows[0]?.total ?? 0);
+    }
+  } catch {
+    databaseReady = false;
+  }
+
+  const launchStatus = buildLaunchStatus({
+    averageLatencyMs: 0,
+    checkedAt,
+    criticalErrorsLastHour: 0,
+    databaseReady,
+    openFeedbackItems,
+    version: process.env.npm_package_version ?? '0.1.0'
+  });
+
+  response.status(launchStatus.status === 'blocked' ? 503 : 200).json(launchStatus);
 });
 
 app.use(createNotFoundHandler());
