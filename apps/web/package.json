@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
-    "test": "node --import tsx --test test/components.test.tsx",
-    "test:coverage": "node --experimental-test-coverage --import tsx --test test/components.test.tsx",
+    "test": "node --import tsx --test test/*.test.tsx",
+    "test:coverage": "node --experimental-test-coverage --import tsx --test test/*.test.tsx",
     "typecheck": "tsc -b --pretty false",
     "lint": "tsc -b --pretty false",
     "preview": "vite preview"
