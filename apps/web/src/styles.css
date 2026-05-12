@@ -545,6 +545,41 @@ h1 {
   white-space: pre-wrap;
 }
 
+.roadmap-item p {
+  font-size: 0.78rem;
+  font-weight: 900;
+  margin: 0 0 6px;
+  text-transform: capitalize;
+}
+
+.roadmap-item h3,
+.roadmap-item dd {
+  margin: 0;
+}
+
+.roadmap-item span,
+.roadmap-item small {
+  display: block;
+  line-height: 1.5;
+  margin-top: 6px;
+}
+
+.roadmap-item dl {
+  display: flex;
+  gap: 18px;
+  margin: 16px 0;
+}
+
+.roadmap-item dt {
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.roadmap-item dd {
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
 .site-footer {
   align-items: center;
   border-top: 1px solid var(--color-border);
