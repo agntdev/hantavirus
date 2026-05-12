@@ -37,6 +37,15 @@ structured metadata. `outbreak_report_sources` attaches external references,
 and `outbreak_report_content_links` connects reports to relevant educational
 content.
 
+## User feedback
+
+`user_feedback` (added in `002_user_feedback.sql`) stores submissions from
+readers and members. Each row captures a category (bug, content request,
+content correction, usability, general), a triage status, an optional
+submitter and contact email for anonymous reports, and the page the feedback
+originated from. Category and status indexes support the aggregation queries
+that drive the `/api/feedback/summary` endpoint.
+
 ## Expansion points
 
 - Enum-backed workflow fields keep allowed states explicit.
