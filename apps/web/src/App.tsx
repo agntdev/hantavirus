@@ -52,6 +52,12 @@ const MobileSupport = lazy(() =>
   }))
 );
 
+const OutbreakMap = lazy(() =>
+  import('./components/OutbreakMap.js').then(({ OutbreakMap }) => ({
+    default: OutbreakMap
+  }))
+);
+
 export function App() {
   const [locale, setLocale] = useState(getInitialLocale);
   const copy = translations[locale];
@@ -177,6 +183,15 @@ export function App() {
             title="Mobile support for the full resource"
           >
             <MobileSupport />
+          </ContentSection>
+
+          <ContentSection
+            eyebrow="Map"
+            id="outbreak-map"
+            intro="Filter report locations by severity and connect each point to source review."
+            title="Outbreak tracking map for verified workflows"
+          >
+            <OutbreakMap />
           </ContentSection>
         </Suspense>
       </main>
