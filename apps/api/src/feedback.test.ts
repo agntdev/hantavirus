@@ -200,6 +200,7 @@ describe('createFeedbackRouter', () => {
       const payload = await response.json();
 
       assert.equal(response.status, 200);
+      assert.equal(response.headers.get('x-cache'), 'MISS');
       assert.deepEqual(payload, {
         by_category: [{ category: 'bug', count: 2 }],
         by_status: [{ count: 2, status: 'new' }],
@@ -211,6 +212,78 @@ describe('createFeedbackRouter', () => {
       assert.match(calls[1].sql, /GROUP BY status/);
       assert.match(calls[2].sql, /count\(\*\)::text AS total/);
       assert.match(calls[3].sql, /ORDER BY created_at DESC/);
+    });
+  });
+
+  it('caches repeated summary requests to avoid duplicate database work', async () => {
+    const recent = {
+      category: 'bug',
+      created_at: '2026-05-12T15:00:00.000Z',
+      id: 'feedback-1',
+      status: 'new',
+      subject: 'Broken link'
+    };
+    const { calls, pool } = createMockPool([
+      { rows: [{ category: 'bug', count: '2' }] },
+      { rows: [{ count: '2', status: 'new' }] },
+      { rows: [{ total: '2' }] },
+      { rows: [recent] }
+    ]);
+
+    await withFeedbackServer(pool, async (baseUrl) => {
+      const first = await fetch(`${baseUrl}/feedback/summary`);
+      const firstPayload = await first.json();
+      const second = await fetch(`${baseUrl}/feedback/summary`);
+      const secondPayload = await second.json();
+
+      assert.equal(first.headers.get('x-cache'), 'MISS');
+      assert.equal(second.headers.get('x-cache'), 'HIT');
+      assert.deepEqual(secondPayload, firstPayload);
+      assert.equal(calls.length, 4);
+    });
+  });
+
+  it('invalidates the summary cache after new feedback is stored', async () => {
+    const created = {
+      created_at: '2026-05-12T15:01:00.000Z',
+      id: 'feedback-2',
+      status: 'new'
+    };
+    const { calls, pool } = createMockPool([
+      { rows: [{ category: 'bug', count: '1' }] },
+      { rows: [{ count: '1', status: 'new' }] },
+      { rows: [{ total: '1' }] },
+      { rows: [] },
+      { rows: [created] },
+      { rows: [{ category: 'general', count: '2' }] },
+      { rows: [{ count: '2', status: 'new' }] },
+      { rows: [{ total: '2' }] },
+      { rows: [] }
+    ]);
+
+    await withFeedbackServer(pool, async (baseUrl) => {
+      const first = await fetch(`${baseUrl}/feedback/summary`);
+      assert.equal(first.headers.get('x-cache'), 'MISS');
+      assert.equal(calls.length, 4);
+
+      const create = await fetch(`${baseUrl}/feedback`, {
+        body: JSON.stringify({
+          body: 'The prevention page needs a printer-friendly version.',
+          category: 'general',
+          subject: 'Printer-friendly prevention guide'
+        }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST'
+      });
+      assert.equal(create.status, 201);
+      assert.equal(calls.length, 5);
+
+      const second = await fetch(`${baseUrl}/feedback/summary`);
+      const secondPayload = (await second.json()) as { total: number };
+
+      assert.equal(second.headers.get('x-cache'), 'MISS');
+      assert.equal(secondPayload.total, 2);
+      assert.equal(calls.length, 9);
     });
   });
 });
