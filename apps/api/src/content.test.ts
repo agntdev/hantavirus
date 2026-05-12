@@ -6,7 +6,8 @@ import type pg from 'pg';
 import {
   createContentRouter,
   parseContentReview,
-  parseContentSubmission
+  parseContentSubmission,
+  parseContentUpdate
 } from './content.js';
 
 type QueryCall = { params?: unknown[]; sql: string };
@@ -98,7 +99,62 @@ describe('parseContentReview', () => {
   });
 });
 
+describe('parseContentUpdate', () => {
+  it('accepts CMS status and tag updates', () => {
+    const parsed = parseContentUpdate({
+      status: 'in_review',
+      tags: ['prevention', 'expert-review'],
+      title: 'Updated draft'
+    });
+
+    assert.equal(parsed.status, 'in_review');
+    assert.equal(parsed.tags?.length, 2);
+  });
+
+  it('rejects invalid tag slugs', () => {
+    assert.throws(() => parseContentUpdate({ tags: ['Invalid Tag'] }));
+  });
+});
+
 describe('createContentRouter', () => {
+  it('lists and upserts content categories', async () => {
+    const category = { id: 'category-1', name: 'Prevention', slug: 'prevention' };
+    const { calls, pool } = createMockPool([{ rows: [category] }, { rows: [category] }]);
+
+    await withContentServer(pool, async (baseUrl) => {
+      const listResponse = await fetch(`${baseUrl}/content/categories`);
+      assert.deepEqual(await listResponse.json(), { categories: [category] });
+
+      const createResponse = await fetch(`${baseUrl}/content/categories`, {
+        body: JSON.stringify({
+          description: 'Prevention education',
+          name: 'Prevention',
+          slug: 'prevention'
+        }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST'
+      });
+
+      assert.equal(createResponse.status, 201);
+      assert.match(calls[0].sql, /FROM content_categories/);
+      assert.match(calls[1].sql, /INSERT INTO content_categories/);
+    });
+  });
+
+  it('searches CMS content by query and type', async () => {
+    const item = { id: 'content-1', title: 'Prevention checklist' };
+    const { calls, pool } = createMockPool([{ rows: [item] }]);
+
+    await withContentServer(pool, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/content/search?q=prevention&content_type=article`);
+      const payload = await response.json();
+
+      assert.equal(response.status, 200);
+      assert.deepEqual(payload, { items: [item] });
+      assert.deepEqual(calls[0].params, ['prevention', 'article']);
+    });
+  });
+
   it('lists medical content from the database', async () => {
     const item = { id: 'content-1', status: 'in_review', title: 'Draft' };
     const { calls, pool } = createMockPool([{ rows: [item] }]);
@@ -150,6 +206,36 @@ describe('createContentRouter', () => {
       assert.match(calls[0].sql, /INSERT INTO medical_content/);
       assert.match(String(calls[0].params?.[2]), /^prevention-checklist-draft-/);
       assert.match(String(calls[0].params?.[6]), /medical_review_required/);
+    });
+  });
+
+  it('updates CMS content status, copy, and tags', async () => {
+    const content = {
+      id: '083b8f64-4db2-4f4b-b87d-01c7798f14c1',
+      metadata: { tags: ['prevention'] },
+      status: 'in_review',
+      summary: 'Updated source-backed summary.',
+      title: 'Updated draft'
+    };
+    const { calls, pool } = createMockPool([{ rows: [content] }]);
+
+    await withContentServer(pool, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/content/${content.id}`, {
+        body: JSON.stringify({
+          status: 'in_review',
+          summary: content.summary,
+          tags: ['prevention'],
+          title: content.title
+        }),
+        headers: { 'content-type': 'application/json' },
+        method: 'PATCH'
+      });
+      const payload = await response.json();
+
+      assert.equal(response.status, 200);
+      assert.deepEqual(payload, content);
+      assert.match(calls[0].sql, /UPDATE medical_content/);
+      assert.match(String(calls[0].params?.[4]), /prevention/);
     });
   });
 
