@@ -5,6 +5,7 @@ import { config } from './config.js';
 import { createContentRouter } from './content.js';
 import { checkDatabase, pool } from './db.js';
 import { createFeedbackRouter } from './feedback.js';
+import { createForumRouter } from './forum.js';
 import {
   buildLaunchStatus,
   createAccessLogMiddleware,
@@ -31,6 +32,7 @@ app.use(express.json({ limit: '64kb' }));
 
 app.use('/api/content', createContentRouter(pool));
 app.use('/api/feedback', createFeedbackRouter(pool));
+app.use('/api/forum', createForumRouter(pool));
 
 app.get('/health', (_request, response) => {
   response.json({ status: 'ok', service: 'hantavirus-api' });
