@@ -3,12 +3,15 @@ import express from 'express';
 import helmet from 'helmet';
 import { config } from './config.js';
 import { checkDatabase, pool } from './db.js';
+import { createFeedbackRouter } from './feedback.js';
 
 const app = express();
 
 app.use(helmet());
 app.use(cors({ origin: config.CORS_ORIGIN }));
 app.use(express.json());
+
+app.use('/api/feedback', createFeedbackRouter(pool));
 
 app.get('/health', (_request, response) => {
   response.json({ status: 'ok', service: 'hantavirus-api' });
