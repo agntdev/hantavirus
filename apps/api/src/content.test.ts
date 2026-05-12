@@ -3,7 +3,11 @@ import { describe, it } from 'node:test';
 import type { AddressInfo } from 'node:net';
 import express from 'express';
 import type pg from 'pg';
-import { createContentRouter, parseContentSubmission } from './content.js';
+import {
+  createContentRouter,
+  parseContentReview,
+  parseContentSubmission
+} from './content.js';
 
 type QueryCall = { params?: unknown[]; sql: string };
 type QueryResult = { rows: unknown[] };
@@ -70,6 +74,30 @@ describe('parseContentSubmission', () => {
   });
 });
 
+describe('parseContentReview', () => {
+  it('accepts expert review decisions with credentials', () => {
+    const parsed = parseContentReview({
+      decision: 'approved',
+      notes: 'Sources match the linked public-health guidance.',
+      reviewer_credentials: 'MD, infectious disease',
+      reviewer_name: 'Dr. Review'
+    });
+
+    assert.equal(parsed.decision, 'approved');
+  });
+
+  it('rejects review notes without enough detail', () => {
+    assert.throws(() =>
+      parseContentReview({
+        decision: 'approved',
+        notes: '',
+        reviewer_credentials: 'MD',
+        reviewer_name: 'Dr. Review'
+      })
+    );
+  });
+});
+
 describe('createContentRouter', () => {
   it('lists medical content from the database', async () => {
     const item = { id: 'content-1', status: 'in_review', title: 'Draft' };
@@ -83,6 +111,20 @@ describe('createContentRouter', () => {
       assert.deepEqual(payload, { items: [item] });
       assert.match(calls[0].sql, /FROM medical_content/);
       assert.deepEqual(calls[0].params, ['in_review']);
+    });
+  });
+
+  it('lists content awaiting expert review', async () => {
+    const item = { id: 'content-1', status: 'in_review', title: 'Draft' };
+    const { calls, pool } = createMockPool([{ rows: [item] }]);
+
+    await withContentServer(pool, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/content/review-queue`);
+      const payload = await response.json();
+
+      assert.equal(response.status, 200);
+      assert.deepEqual(payload, { items: [item] });
+      assert.match(calls[0].sql, /WHERE status = 'in_review'/);
     });
   });
 
@@ -108,6 +150,40 @@ describe('createContentRouter', () => {
       assert.match(calls[0].sql, /INSERT INTO medical_content/);
       assert.match(String(calls[0].params?.[2]), /^prevention-checklist-draft-/);
       assert.match(String(calls[0].params?.[6]), /medical_review_required/);
+    });
+  });
+
+  it('records expert reviews and updates content status', async () => {
+    const review = {
+      decision: 'approved',
+      id: 'review-1',
+      reviewed_at: '2026-05-12T17:00:00.000Z'
+    };
+    const content = {
+      id: '083b8f64-4db2-4f4b-b87d-01c7798f14c1',
+      published_at: '2026-05-12T17:00:00.000Z',
+      status: 'published'
+    };
+    const { calls, pool } = createMockPool([{ rows: [review] }, { rows: [content] }]);
+
+    await withContentServer(pool, async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/content/${content.id}/reviews`, {
+        body: JSON.stringify({
+          decision: 'approved',
+          notes: 'Sources match the linked CDC guidance.',
+          reviewer_credentials: 'MD, infectious disease',
+          reviewer_name: 'Dr. Review'
+        }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST'
+      });
+      const payload = await response.json();
+
+      assert.equal(response.status, 201);
+      assert.deepEqual(payload, { content, review });
+      assert.match(calls[0].sql, /INSERT INTO content_reviews/);
+      assert.match(calls[1].sql, /UPDATE medical_content/);
+      assert.equal(calls[1].params?.[1], 'published');
     });
   });
 });

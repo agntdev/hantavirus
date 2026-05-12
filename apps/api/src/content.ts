@@ -5,6 +5,7 @@ import { z } from 'zod';
 
 const CONTENT_TYPES = ['article', 'faq', 'guideline', 'infographic', 'video'] as const;
 const CONTENT_STATUSES = ['draft', 'in_review', 'published', 'archived', 'rejected'] as const;
+const REVIEW_DECISIONS = ['approved', 'changes_requested', 'rejected'] as const;
 
 export const contentSubmissionSchema = z.object({
   body_markdown: z.string().trim().min(40).max(20000),
@@ -17,7 +18,15 @@ export const contentSubmissionSchema = z.object({
   title: z.string().trim().min(3).max(200)
 });
 
+export const contentReviewSchema = z.object({
+  decision: z.enum(REVIEW_DECISIONS),
+  notes: z.string().trim().min(3).max(2000),
+  reviewer_credentials: z.string().trim().min(3).max(500),
+  reviewer_name: z.string().trim().min(2).max(160)
+});
+
 export type ContentSubmission = z.infer<typeof contentSubmissionSchema>;
+export type ContentReviewInput = z.infer<typeof contentReviewSchema>;
 
 function slugify(value: string) {
   const slug = value
@@ -32,8 +41,32 @@ export function parseContentSubmission(value: unknown): ContentSubmission {
   return contentSubmissionSchema.parse(value);
 }
 
+export function parseContentReview(value: unknown): ContentReviewInput {
+  return contentReviewSchema.parse(value);
+}
+
+function nextContentStatus(decision: ContentReviewInput['decision']) {
+  return decision === 'approved'
+    ? 'published'
+    : decision === 'rejected'
+      ? 'rejected'
+      : 'in_review';
+}
+
 export function createContentRouter(pool: pg.Pool): Router {
   const router = Router();
+
+  router.get('/review-queue', async (_request, response) => {
+    const { rows } = await pool.query(
+      `SELECT id, content_type, status, title, slug, summary, source_url, metadata, updated_at
+         FROM medical_content
+        WHERE status = 'in_review'
+        ORDER BY updated_at ASC
+        LIMIT 50`
+    );
+
+    response.json({ items: rows });
+  });
 
   router.get('/', async (request, response) => {
     const status = z.enum(CONTENT_STATUSES).optional().parse(request.query.status);
@@ -89,6 +122,43 @@ export function createContentRouter(pool: pg.Pool): Router {
     );
 
     response.status(201).json(rows[0]);
+  });
+
+  router.post('/:id/reviews', async (request, response) => {
+    const contentId = z.string().uuid().safeParse(request.params.id);
+    const parsed = contentReviewSchema.safeParse(request.body);
+    if (!contentId.success || !parsed.success) {
+      response.status(400).json({ error: 'invalid_content_review' });
+      return;
+    }
+
+    const input = parsed.data;
+    const notes = [
+      `Reviewer: ${input.reviewer_name}`,
+      `Credentials: ${input.reviewer_credentials}`,
+      input.notes
+    ].join('\n\n');
+    const [reviewResult, updateResult] = await Promise.all([
+      pool.query(
+        `INSERT INTO content_reviews (content_id, decision, notes)
+         VALUES ($1, $2, $3)
+         RETURNING id, decision, reviewed_at`,
+        [contentId.data, input.decision, notes]
+      ),
+      pool.query(
+        `UPDATE medical_content
+            SET status = $2,
+                published_at = CASE WHEN $2 = 'published' THEN now() ELSE published_at END
+          WHERE id = $1
+          RETURNING id, status, published_at`,
+        [contentId.data, nextContentStatus(input.decision)]
+      )
+    ]);
+
+    response.status(201).json({
+      content: updateResult.rows[0],
+      review: reviewResult.rows[0]
+    });
   });
 
   return router;
