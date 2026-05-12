@@ -40,6 +40,12 @@ const UpdateCenter = lazy(() =>
   }))
 );
 
+const ContentLibrary = lazy(() =>
+  import('./components/ContentLibrary.js').then(({ ContentLibrary }) => ({
+    default: ContentLibrary
+  }))
+);
+
 export function App() {
   const [locale, setLocale] = useState(getInitialLocale);
   const copy = translations[locale];
@@ -147,6 +153,15 @@ export function App() {
             title="Feedback and performance guide every update"
           >
             <UpdateCenter />
+          </ContentSection>
+
+          <ContentSection
+            eyebrow="Library"
+            id="library"
+            intro="Organize articles, videos, infographics, and expert submissions before publication."
+            title="Educational content waits for source-backed review"
+          >
+            <ContentLibrary />
           </ContentSection>
         </Suspense>
       </main>
