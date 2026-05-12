@@ -1,6 +1,7 @@
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
+import { createAuthRouter } from './auth.js';
 import { config } from './config.js';
 import { createContentRouter } from './content.js';
 import { checkDatabase, pool } from './db.js';
@@ -31,6 +32,7 @@ app.use(
 );
 app.use(express.json({ limit: '64kb' }));
 
+app.use('/api/auth', createAuthRouter(pool));
 app.use('/api/content', createContentRouter(pool));
 app.use('/api/feedback', createFeedbackRouter(pool));
 app.use('/api/forum', createForumRouter(pool));

@@ -58,6 +58,12 @@ const OutbreakMap = lazy(() =>
   }))
 );
 
+const AuthPanel = lazy(() =>
+  import('./components/AuthPanel.js').then(({ AuthPanel }) => ({
+    default: AuthPanel
+  }))
+);
+
 export function App() {
   const [locale, setLocale] = useState(getInitialLocale);
   const copy = translations[locale];
@@ -192,6 +198,15 @@ export function App() {
             title="Outbreak tracking map for verified workflows"
           >
             <OutbreakMap />
+          </ContentSection>
+
+          <ContentSection
+            eyebrow="Accounts"
+            id="auth"
+            intro="Create accounts, login securely, link social identity, and load profile sessions."
+            title="Authentication for readers and contributors"
+          >
+            <AuthPanel />
           </ContentSection>
         </Suspense>
       </main>
