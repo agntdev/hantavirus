@@ -34,6 +34,12 @@ const FeatureRoadmap = lazy(() =>
   }))
 );
 
+const UpdateCenter = lazy(() =>
+  import('./components/UpdateCenter.js').then(({ UpdateCenter }) => ({
+    default: UpdateCenter
+  }))
+);
+
 export function App() {
   const [locale, setLocale] = useState(getInitialLocale);
   const copy = translations[locale];
@@ -132,6 +138,15 @@ export function App() {
             title="Community demand drives the next updates"
           >
             <FeatureRoadmap />
+          </ContentSection>
+
+          <ContentSection
+            eyebrow="Updates"
+            id="updates"
+            intro="Track shipped fixes, monitored changes, and compatibility-safe follow-up work."
+            title="Feedback and performance guide every update"
+          >
+            <UpdateCenter />
           </ContentSection>
         </Suspense>
       </main>
