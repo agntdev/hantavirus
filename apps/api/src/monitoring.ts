@@ -24,6 +24,29 @@ type ErrorLogEntry = {
 
 type LogSink<T> = (entry: T) => void;
 
+export type LaunchMetricSnapshot = {
+  averageLatencyMs: number;
+  checkedAt: string;
+  criticalErrorsLastHour: number;
+  databaseReady: boolean;
+  openFeedbackItems: number;
+  version: string;
+};
+
+export type LaunchStatus = {
+  alerts: Array<{
+    message: string;
+    next_action: string;
+    severity: 'critical' | 'warning';
+  }>;
+  post_launch_actions: string[];
+  signals: LaunchMetricSnapshot;
+  status: 'blocked' | 'ready' | 'watch';
+};
+
+const FEEDBACK_BACKLOG_WARNING = 25;
+const LATENCY_WARNING_MS = 1200;
+
 export function createRequestIdMiddleware(): RequestHandler {
   return (request, response, next) => {
     const requestId = request.get('x-request-id') || randomUUID();
@@ -78,5 +101,38 @@ export function createErrorHandler(
       request_id: String(response.getHeader('X-Request-Id') ?? '')
     });
     response.status(500).json({ error: 'internal_error' });
+  };
+}
+
+export function buildLaunchStatus(signals: LaunchMetricSnapshot): LaunchStatus {
+  const alerts: LaunchStatus['alerts'] = [];
+
+  if (!signals.databaseReady) {
+    alerts.push({ message: 'Database readiness check failed.', next_action: 'Hold launch traffic until the database is reachable.', severity: 'critical' });
+  }
+
+  if (signals.criticalErrorsLastHour > 0) {
+    alerts.push({ message: `${signals.criticalErrorsLastHour} critical API errors in the last hour.`, next_action: 'Inspect error logs by request id and patch or roll back.', severity: 'critical' });
+  }
+
+  if (signals.averageLatencyMs > LATENCY_WARNING_MS) {
+    alerts.push({ message: `Average API latency is ${signals.averageLatencyMs}ms.`, next_action: 'Review slow routes and database query plans.', severity: 'warning' });
+  }
+
+  if (signals.openFeedbackItems > FEEDBACK_BACKLOG_WARNING) {
+    alerts.push({ message: `${signals.openFeedbackItems} unresolved feedback items need triage.`, next_action: 'Triage user feedback and pick the next post-launch update batch.', severity: 'warning' });
+  }
+
+  const hasCriticalAlert = alerts.some((alert) => alert.severity === 'critical');
+
+  return {
+    alerts,
+    post_launch_actions: [
+      'Review unresolved user feedback daily.',
+      'Keep rollback notes and deployment artifacts current.',
+      'Promote critical fixes before new feature work.'
+    ],
+    signals,
+    status: hasCriticalAlert ? 'blocked' : alerts.length > 0 ? 'watch' : 'ready'
   };
 }

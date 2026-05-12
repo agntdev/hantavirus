@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import type { AddressInfo } from 'node:net';
 import express from 'express';
 import {
+  buildLaunchStatus,
   createAccessLogMiddleware,
   createErrorHandler,
   createNotFoundHandler,
@@ -96,5 +97,34 @@ describe('monitoring middleware', () => {
         request_id: (errorLogs[0] as { request_id: string }).request_id
       });
     });
+  });
+
+  it('builds ready, blocked, and watch launch states', () => {
+    const baseSignals = {
+      averageLatencyMs: 220,
+      checkedAt: '2026-05-12T17:10:00.000Z',
+      criticalErrorsLastHour: 0,
+      databaseReady: true,
+      openFeedbackItems: 3,
+      version: '0.1.0'
+    };
+    const ready = buildLaunchStatus(baseSignals);
+    const blocked = buildLaunchStatus({
+      ...baseSignals,
+      criticalErrorsLastHour: 2,
+      databaseReady: false
+    });
+    const watch = buildLaunchStatus({
+      ...baseSignals,
+      averageLatencyMs: 1400,
+      openFeedbackItems: 30
+    });
+
+    assert.equal(ready.status, 'ready');
+    assert.deepEqual(ready.alerts, []);
+    assert.equal(blocked.status, 'blocked');
+    assert.equal(blocked.alerts.filter((alert) => alert.severity === 'critical').length, 2);
+    assert.equal(watch.status, 'watch');
+    assert.equal(watch.alerts.filter((alert) => alert.severity === 'warning').length, 2);
   });
 });
