@@ -44,7 +44,9 @@ readers and members. Each row captures a category (bug, content request,
 content correction, usability, general), a triage status, an optional
 submitter and contact email for anonymous reports, and the page the feedback
 originated from. Category and status indexes support the aggregation queries
-that drive the `/api/feedback/summary` endpoint.
+that drive the `/api/feedback/summary` endpoint. Composite summary indexes in
+`003_user_feedback_summary_indexes.sql` cover repeated category/status
+dashboards and the newest-feedback list used by that endpoint.
 
 ## Expansion points
 

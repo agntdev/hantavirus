@@ -1,8 +1,19 @@
+import { lazy, Suspense } from 'react';
 import './styles.css';
 import { AppLayout } from './components/AppLayout.js';
-import { ContentSection } from './components/ContentSection.js';
-import { InfoCard } from './components/InfoCard.js';
 import { StatStrip } from './components/StatStrip.js';
+
+const ContentSection = lazy(() =>
+  import('./components/ContentSection.js').then(({ ContentSection }) => ({
+    default: ContentSection
+  }))
+);
+
+const InfoCard = lazy(() =>
+  import('./components/InfoCard.js').then(({ InfoCard }) => ({
+    default: InfoCard
+  }))
+);
 
 const focusAreas = [
   {
@@ -64,43 +75,45 @@ export function App() {
 
         <StatStrip items={stats} />
 
-        <ContentSection
-          eyebrow="Core areas"
-          id="guidance"
-          intro="Reusable cards establish the first content templates for the project."
-          title="Built for clear public-health information"
-        >
-          <div className="card-grid">
-            {focusAreas.map((area) => (
-              <InfoCard
-                accent={area.accent}
-                description={area.description}
-                key={area.title}
-                title={area.title}
-              />
-            ))}
-          </div>
-        </ContentSection>
+        <Suspense fallback={null}>
+          <ContentSection
+            eyebrow="Core areas"
+            id="guidance"
+            intro="Reusable cards establish the first content templates for the project."
+            title="Built for clear public-health information"
+          >
+            <div className="card-grid">
+              {focusAreas.map((area) => (
+                <InfoCard
+                  accent={area.accent}
+                  description={area.description}
+                  key={area.title}
+                  title={area.title}
+                />
+              ))}
+            </div>
+          </ContentSection>
 
-        <ContentSection
-          eyebrow="Templates"
-          id="tracking"
-          intro="The layout supports dashboard-style pages without changing the shell."
-          title="Ready for tracking and reporting screens"
-        >
-          <div className="split-layout">
-            <InfoCard
-              accent="blue"
-              description="Outbreak reports can use the same card shell for severity, source, and location summaries."
-              title="Outbreak overview"
-            />
-            <InfoCard
-              accent="gold"
-              description="Review queues can use section headers and compact grid layouts for moderation work."
-              title="Review workflow"
-            />
-          </div>
-        </ContentSection>
+          <ContentSection
+            eyebrow="Templates"
+            id="tracking"
+            intro="The layout supports dashboard-style pages without changing the shell."
+            title="Ready for tracking and reporting screens"
+          >
+            <div className="split-layout">
+              <InfoCard
+                accent="blue"
+                description="Outbreak reports can use the same card shell for severity, source, and location summaries."
+                title="Outbreak overview"
+              />
+              <InfoCard
+                accent="gold"
+                description="Review queues can use section headers and compact grid layouts for moderation work."
+                title="Review workflow"
+              />
+            </div>
+          </ContentSection>
+        </Suspense>
       </main>
     </AppLayout>
   );
