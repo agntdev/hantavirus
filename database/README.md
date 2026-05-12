@@ -5,8 +5,8 @@ can use any PostgreSQL-compatible instance exposed through `DATABASE_URL`.
 
 Planned layout:
 
-- `migrations/` contains ordered SQL migration files.
+- `migrations/` contains ordered SQL migration files. Start with
+  `001_initial_schema.sql`.
 - `seeds/` contains development-only seed data.
 
-Task T02 will add the first domain schema for users, medical content, forum
-posts, and outbreak tracking.
+See `schema.md` for the current domain model and relationship overview.
