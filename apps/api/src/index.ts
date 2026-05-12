@@ -2,6 +2,7 @@ import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import { config } from './config.js';
+import { createContentRouter } from './content.js';
 import { checkDatabase, pool } from './db.js';
 import { createFeedbackRouter } from './feedback.js';
 import {
@@ -28,6 +29,7 @@ app.use(
 );
 app.use(express.json({ limit: '64kb' }));
 
+app.use('/api/content', createContentRouter(pool));
 app.use('/api/feedback', createFeedbackRouter(pool));
 
 app.get('/health', (_request, response) => {
