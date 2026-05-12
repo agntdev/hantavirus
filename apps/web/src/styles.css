@@ -313,6 +313,127 @@ h1 {
   margin: 0;
 }
 
+.analytics-dashboard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 22px;
+}
+
+.analytics-toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.analytics-toolbar label {
+  align-items: center;
+  color: var(--color-muted);
+  display: inline-flex;
+  font-size: 0.9rem;
+  font-weight: 800;
+  gap: 10px;
+}
+
+.analytics-toolbar select {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text);
+  font: inherit;
+  min-height: 38px;
+  padding: 0 36px 0 10px;
+}
+
+.metric-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.metric-tile {
+  background: #f7faf8;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.metric-tile p {
+  color: var(--color-muted);
+  font-weight: 800;
+  margin: 0 0 8px;
+}
+
+.metric-tile strong {
+  display: block;
+  font-size: 1.7rem;
+  line-height: 1;
+}
+
+.metric-tile span,
+.site-stat-list em {
+  color: var(--color-green);
+  display: block;
+  font-style: normal;
+  font-weight: 800;
+  margin-top: 8px;
+}
+
+.analytics-panels {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 16px;
+}
+
+.analytics-panels article {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.analytics-panels h3 {
+  font-size: 1rem;
+  margin: 0 0 14px;
+}
+
+.ranked-bars,
+.site-stat-list {
+  display: grid;
+  gap: 12px;
+}
+
+.ranked-row-heading,
+.site-stat-list div {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.ranked-row-heading span,
+.site-stat-list span {
+  color: var(--color-muted);
+  font-weight: 700;
+}
+
+.bar-track {
+  background: #e9efec;
+  border-radius: 999px;
+  height: 8px;
+  margin-top: 7px;
+  overflow: hidden;
+}
+
+.bar-track span {
+  background: var(--color-blue);
+  display: block;
+  height: 100%;
+}
+
 .site-footer {
   align-items: center;
   border-top: 1px solid var(--color-border);
@@ -334,7 +455,8 @@ h1 {
   }
 
   .hero-layout,
-  .split-layout {
+  .split-layout,
+  .analytics-panels {
     grid-template-columns: 1fr;
   }
 
@@ -364,6 +486,7 @@ h1 {
   }
 
   .card-grid,
+  .metric-grid,
   .stat-strip {
     grid-template-columns: 1fr;
   }
