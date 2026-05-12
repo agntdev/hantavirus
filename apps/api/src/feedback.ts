@@ -21,12 +21,33 @@ export const feedbackInputSchema = z.object({
 
 export type FeedbackInput = z.infer<typeof feedbackInputSchema>;
 
+type FeedbackSummary = {
+  by_category: Array<{ category: string; count: number }>;
+  by_status: Array<{ count: number; status: string }>;
+  recent: Array<{
+    category: string;
+    created_at: string;
+    id: string;
+    status: string;
+    subject: string;
+  }>;
+  total: number;
+};
+
+type SummaryCache = {
+  expiresAt: number;
+  summary: FeedbackSummary;
+};
+
+const SUMMARY_CACHE_TTL_MS = 30_000;
+
 export function parseFeedbackInput(value: unknown): FeedbackInput {
   return feedbackInputSchema.parse(value);
 }
 
 export function createFeedbackRouter(pool: pg.Pool): Router {
   const router = Router();
+  let summaryCache: SummaryCache | null = null;
 
   router.post('/', async (request, response) => {
     const parsed = feedbackInputSchema.safeParse(request.body);
@@ -61,10 +82,18 @@ export function createFeedbackRouter(pool: pg.Pool): Router {
       ]
     );
 
+    summaryCache = null;
     response.status(201).json(rows[0]);
   });
 
   router.get('/summary', async (_request, response) => {
+    const now = Date.now();
+    if (summaryCache && summaryCache.expiresAt > now) {
+      response.setHeader('X-Cache', 'HIT');
+      response.json(summaryCache.summary);
+      return;
+    }
+
     const [byCategory, byStatus, total, recent] = await Promise.all([
       pool.query<{ category: string; count: string }>(
         `SELECT category, count(*)::text AS count
@@ -95,7 +124,7 @@ export function createFeedbackRouter(pool: pg.Pool): Router {
       )
     ]);
 
-    response.json({
+    const summary: FeedbackSummary = {
       by_category: byCategory.rows.map((row) => ({
         category: row.category,
         count: Number(row.count)
@@ -106,7 +135,16 @@ export function createFeedbackRouter(pool: pg.Pool): Router {
       })),
       recent: recent.rows,
       total: Number(total.rows[0]?.total ?? 0)
-    });
+    };
+
+    summaryCache = {
+      expiresAt: now + SUMMARY_CACHE_TTL_MS,
+      summary
+    };
+
+    response.setHeader('Cache-Control', 'private, max-age=30');
+    response.setHeader('X-Cache', 'MISS');
+    response.json(summary);
   });
 
   return router;
