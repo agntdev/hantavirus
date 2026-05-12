@@ -28,6 +28,12 @@ const NotificationCenter = lazy(() =>
   }))
 );
 
+const FeatureRoadmap = lazy(() =>
+  import('./components/FeatureRoadmap.js').then(({ FeatureRoadmap }) => ({
+    default: FeatureRoadmap
+  }))
+);
+
 export function App() {
   const [locale, setLocale] = useState(getInitialLocale);
   const copy = translations[locale];
@@ -117,6 +123,15 @@ export function App() {
             title="Notification center for readers and contributors"
           >
             <NotificationCenter />
+          </ContentSection>
+
+          <ContentSection
+            eyebrow="Roadmap"
+            id="roadmap"
+            intro="Rank requested features from feedback, usage signals, and accessibility impact."
+            title="Community demand drives the next updates"
+          >
+            <FeatureRoadmap />
           </ContentSection>
         </Suspense>
       </main>
