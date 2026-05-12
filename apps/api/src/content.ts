@@ -7,6 +7,14 @@ const CONTENT_TYPES = ['article', 'faq', 'guideline', 'infographic', 'video'] as
 const CONTENT_STATUSES = ['draft', 'in_review', 'published', 'archived', 'rejected'] as const;
 const REVIEW_DECISIONS = ['approved', 'changes_requested', 'rejected'] as const;
 
+const slugSchema = z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(120);
+
+export const contentCategorySchema = z.object({
+  description: z.string().trim().max(500).optional(),
+  name: z.string().trim().min(2).max(120),
+  slug: slugSchema
+});
+
 export const contentSubmissionSchema = z.object({
   body_markdown: z.string().trim().min(40).max(20000),
   contact_email: z.string().trim().email().max(254),
@@ -25,8 +33,17 @@ export const contentReviewSchema = z.object({
   reviewer_name: z.string().trim().min(2).max(160)
 });
 
+export const contentUpdateSchema = z.object({
+  status: z.enum(CONTENT_STATUSES).optional(),
+  summary: z.string().trim().min(10).max(500).optional(),
+  tags: z.array(slugSchema).max(12).optional(),
+  title: z.string().trim().min(3).max(200).optional()
+});
+
+export type ContentCategoryInput = z.infer<typeof contentCategorySchema>;
 export type ContentSubmission = z.infer<typeof contentSubmissionSchema>;
 export type ContentReviewInput = z.infer<typeof contentReviewSchema>;
+export type ContentUpdateInput = z.infer<typeof contentUpdateSchema>;
 
 function slugify(value: string) {
   const slug = value
@@ -43,6 +60,10 @@ export function parseContentSubmission(value: unknown): ContentSubmission {
 
 export function parseContentReview(value: unknown): ContentReviewInput {
   return contentReviewSchema.parse(value);
+}
+
+export function parseContentUpdate(value: unknown): ContentUpdateInput {
+  return contentUpdateSchema.parse(value);
 }
 
 function nextContentStatus(decision: ContentReviewInput['decision']) {
@@ -65,6 +86,49 @@ export function createContentRouter(pool: pg.Pool): Router {
         LIMIT 50`
     );
 
+    response.json({ items: rows });
+  });
+
+  router.get('/categories', async (_request, response) => {
+    const { rows } = await pool.query(
+      `SELECT id, name, slug, description, updated_at
+         FROM content_categories
+        ORDER BY name ASC`
+    );
+    response.json({ categories: rows });
+  });
+
+  router.post('/categories', async (request, response) => {
+    const parsed = contentCategorySchema.safeParse(request.body);
+    if (!parsed.success) {
+      response.status(400).json({ error: 'invalid_content_category' });
+      return;
+    }
+
+    const { rows } = await pool.query(
+      `INSERT INTO content_categories (name, slug, description)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (slug) DO UPDATE
+          SET name = EXCLUDED.name,
+              description = EXCLUDED.description
+       RETURNING id, name, slug, description`,
+      [parsed.data.name, parsed.data.slug, parsed.data.description ?? null]
+    );
+    response.status(201).json(rows[0]);
+  });
+
+  router.get('/search', async (request, response) => {
+    const query = z.string().trim().max(120).optional().parse(request.query.q);
+    const type = z.enum(CONTENT_TYPES).optional().parse(request.query.content_type);
+    const { rows } = await pool.query(
+      `SELECT id, content_type, status, title, slug, summary, source_url, metadata, updated_at
+         FROM medical_content
+        WHERE ($1::text IS NULL OR title ILIKE '%' || $1 || '%' OR summary ILIKE '%' || $1 || '%')
+          AND ($2::text IS NULL OR content_type::text = $2)
+        ORDER BY updated_at DESC
+        LIMIT 50`,
+      [query || null, type || null]
+    );
     response.json({ items: rows });
   });
 
@@ -122,6 +186,34 @@ export function createContentRouter(pool: pg.Pool): Router {
     );
 
     response.status(201).json(rows[0]);
+  });
+
+  router.patch('/:id', async (request, response) => {
+    const contentId = z.string().uuid().safeParse(request.params.id);
+    const parsed = contentUpdateSchema.safeParse(request.body);
+    if (!contentId.success || !parsed.success) {
+      response.status(400).json({ error: 'invalid_content_update' });
+      return;
+    }
+
+    const metadata = parsed.data.tags ? { tags: parsed.data.tags } : {};
+    const { rows } = await pool.query(
+      `UPDATE medical_content
+          SET status = COALESCE($2, status),
+              title = COALESCE($3, title),
+              summary = COALESCE($4, summary),
+              metadata = metadata || $5::jsonb
+        WHERE id = $1
+        RETURNING id, status, title, summary, metadata, updated_at`,
+      [
+        contentId.data,
+        parsed.data.status ?? null,
+        parsed.data.title ?? null,
+        parsed.data.summary ?? null,
+        JSON.stringify(metadata)
+      ]
+    );
+    response.json(rows[0]);
   });
 
   router.post('/:id/reviews', async (request, response) => {
