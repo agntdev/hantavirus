@@ -16,6 +16,12 @@ const InfoCard = lazy(() =>
   }))
 );
 
+const AnalyticsDashboard = lazy(() =>
+  import('./components/AnalyticsDashboard.js').then(({ AnalyticsDashboard }) => ({
+    default: AnalyticsDashboard
+  }))
+);
+
 export function App() {
   const [locale, setLocale] = useState(getInitialLocale);
   const copy = translations[locale];
@@ -87,6 +93,15 @@ export function App() {
                 />
               ))}
             </div>
+          </ContentSection>
+
+          <ContentSection
+            eyebrow="Analytics"
+            id="analytics"
+            intro="Track reader engagement, content performance, and site health across selectable time ranges."
+            title="Dashboard for content and usage decisions"
+          >
+            <AnalyticsDashboard />
           </ContentSection>
         </Suspense>
       </main>
