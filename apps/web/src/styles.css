@@ -96,6 +96,33 @@ body {
   color: var(--color-green);
 }
 
+.header-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 22px;
+  justify-content: flex-end;
+}
+
+.language-select {
+  align-items: center;
+  color: var(--color-muted);
+  display: inline-flex;
+  font-size: 0.85rem;
+  font-weight: 700;
+  gap: 8px;
+}
+
+.language-select select {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text);
+  font: inherit;
+  min-height: 36px;
+  padding: 0 34px 0 10px;
+}
+
 main {
   margin: 0 auto;
   max-width: 1120px;
@@ -319,6 +346,11 @@ h1 {
 @media (max-width: 640px) {
   .site-header,
   .site-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .header-actions {
     align-items: flex-start;
     flex-direction: column;
   }

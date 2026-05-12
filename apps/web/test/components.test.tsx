@@ -7,6 +7,7 @@ import { AppLayout } from '../src/components/AppLayout.js';
 import { ContentSection } from '../src/components/ContentSection.js';
 import { InfoCard } from '../src/components/InfoCard.js';
 import { StatStrip } from '../src/components/StatStrip.js';
+import { translations } from '../src/i18n.js';
 
 test('InfoCard renders copy with the selected accent class', () => {
   const html = renderToStaticMarkup(
@@ -64,7 +65,11 @@ test('AppLayout renders branded navigation, children, and footer links', () => {
   const html = renderToStaticMarkup(
     React.createElement(
       AppLayout,
-      null,
+      {
+        copy: translations.en.site,
+        locale: 'en',
+        onLocaleChange: () => undefined
+      },
       React.createElement('main', null, 'Page content')
     )
   );
@@ -74,6 +79,7 @@ test('AppLayout renders branded navigation, children, and footer links', () => {
   assert.ok(html.includes('Guidance'));
   assert.ok(html.includes('Tracking'));
   assert.ok(html.includes('Community'));
+  assert.ok(html.includes('Language'));
   assert.ok(html.includes('Page content'));
   assert.ok(html.includes('Educational content, outbreak awareness, and community support.'));
 });

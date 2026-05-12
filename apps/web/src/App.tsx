@@ -1,7 +1,8 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import './styles.css';
 import { AppLayout } from './components/AppLayout.js';
 import { StatStrip } from './components/StatStrip.js';
+import { getInitialLocale, storeLocale, translations } from './i18n.js';
 
 const ContentSection = lazy(() =>
   import('./components/ContentSection.js').then(({ ContentSection }) => ({
@@ -15,75 +16,51 @@ const InfoCard = lazy(() =>
   }))
 );
 
-const focusAreas = [
-  {
-    accent: 'green' as const,
-    description: 'Practical steps for reducing exposure risk in homes and workplaces.',
-    title: 'Prevention guidance'
-  },
-  {
-    accent: 'red' as const,
-    description: 'Clear symptom summaries and response pathways for concerned readers.',
-    title: 'Symptoms and response'
-  },
-  {
-    accent: 'blue' as const,
-    description: 'Structured reports for locations, case counts, severity, and sources.',
-    title: 'Outbreak tracking'
-  },
-  {
-    accent: 'gold' as const,
-    description: 'Forum and review foundations for community and expert collaboration.',
-    title: 'Community education'
-  }
-];
-
-const stats = [
-  { label: 'Content types', value: '5' },
-  { label: 'Core workflows', value: '4' },
-  { label: 'Responsive layouts', value: 'Ready' }
-];
-
 export function App() {
+  const [locale, setLocale] = useState(getInitialLocale);
+  const copy = translations[locale];
+
+  useEffect(() => {
+    document.documentElement.lang = locale;
+    storeLocale(locale);
+  }, [locale]);
+
   return (
-    <AppLayout>
+    <AppLayout copy={copy.site} locale={locale} onLocaleChange={setLocale}>
       <main>
         <section className="hero-layout">
           <div>
-            <p className="eyebrow">Public health resource</p>
-            <h1>Hantavirus information and prevention hub</h1>
-            <p>
-              Trustworthy educational content, outbreak awareness, and community
-              support tools for readers and public-health contributors.
-            </p>
-            <div className="hero-actions" aria-label="Primary actions">
+            <p className="eyebrow">{copy.hero.eyebrow}</p>
+            <h1>{copy.hero.title}</h1>
+            <p>{copy.hero.description}</p>
+            <div className="hero-actions" aria-label={copy.hero.actionsLabel}>
               <a className="button button-primary" href="#guidance">
-                Browse guidance
+                {copy.hero.primaryAction}
               </a>
               <a className="button button-secondary" href="#tracking">
-                View tracking
+                {copy.hero.secondaryAction}
               </a>
             </div>
           </div>
 
-          <aside className="hero-panel" aria-label="Project status">
-            <p>Foundation</p>
-            <strong>Component system</strong>
-            <span>Navigation, content sections, cards, and responsive grids.</span>
+          <aside className="hero-panel" aria-label={copy.hero.statusLabel}>
+            <p>{copy.hero.panelLabel}</p>
+            <strong>{copy.hero.panelTitle}</strong>
+            <span>{copy.hero.panelDescription}</span>
           </aside>
         </section>
 
-        <StatStrip items={stats} />
+        <StatStrip items={copy.stats} />
 
         <Suspense fallback={null}>
           <ContentSection
-            eyebrow="Core areas"
+            eyebrow={copy.sections.guidance.eyebrow}
             id="guidance"
-            intro="Reusable cards establish the first content templates for the project."
-            title="Built for clear public-health information"
+            intro={copy.sections.guidance.intro}
+            title={copy.sections.guidance.title}
           >
             <div className="card-grid">
-              {focusAreas.map((area) => (
+              {copy.focusAreas.map((area) => (
                 <InfoCard
                   accent={area.accent}
                   description={area.description}
@@ -95,22 +72,20 @@ export function App() {
           </ContentSection>
 
           <ContentSection
-            eyebrow="Templates"
+            eyebrow={copy.sections.tracking.eyebrow}
             id="tracking"
-            intro="The layout supports dashboard-style pages without changing the shell."
-            title="Ready for tracking and reporting screens"
+            intro={copy.sections.tracking.intro}
+            title={copy.sections.tracking.title}
           >
             <div className="split-layout">
-              <InfoCard
-                accent="blue"
-                description="Outbreak reports can use the same card shell for severity, source, and location summaries."
-                title="Outbreak overview"
-              />
-              <InfoCard
-                accent="gold"
-                description="Review queues can use section headers and compact grid layouts for moderation work."
-                title="Review workflow"
-              />
+              {copy.sections.tracking.cards.map((card) => (
+                <InfoCard
+                  accent={card.accent}
+                  description={card.description}
+                  key={card.title}
+                  title={card.title}
+                />
+              ))}
             </div>
           </ContentSection>
         </Suspense>
