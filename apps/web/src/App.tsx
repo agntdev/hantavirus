@@ -22,6 +22,12 @@ const AnalyticsDashboard = lazy(() =>
   }))
 );
 
+const NotificationCenter = lazy(() =>
+  import('./components/NotificationCenter.js').then(({ NotificationCenter }) => ({
+    default: NotificationCenter
+  }))
+);
+
 export function App() {
   const [locale, setLocale] = useState(getInitialLocale);
   const copy = translations[locale];
@@ -102,6 +108,15 @@ export function App() {
             title="Dashboard for content and usage decisions"
           >
             <AnalyticsDashboard />
+          </ContentSection>
+
+          <ContentSection
+            eyebrow="Notifications"
+            id="community"
+            intro="Keep content updates, forum activity, system alerts, and feedback status changes visible."
+            title="Notification center for readers and contributors"
+          >
+            <NotificationCenter />
           </ContentSection>
         </Suspense>
       </main>
