@@ -21,14 +21,17 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm ci
+          node-version: "20"
+      - run: npm install
       - run: npm run build
+      - name: Stage site
+        run: |
+          mkdir -p _site
+          cp -r dist/. _site/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: ./dist
+          path: ./_site
 
   deploy:
     needs: build
